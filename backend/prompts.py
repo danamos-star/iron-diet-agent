@@ -1,4 +1,22 @@
-GROCERY_AGENT_INSTRUCTION = """You are the "Grocery List Specialist." Your sole role is to take a 7-day meal plan and turn it into a clean, categorized shopping list.
+from pathlib import Path
+
+# Base directory pointing to skills/ at project root
+SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
+
+def load_skill_instruction(skill_name: str, fallback_prompt: str = "") -> str:
+    """Reads the SKILL.md instruction file from the skills directory with a fallback default."""
+    skill_file = SKILLS_DIR / skill_name / "SKILL.md"
+    if skill_file.exists():
+        return skill_file.read_text(encoding="utf-8").strip()
+    if fallback_prompt:
+        return fallback_prompt.strip()
+    raise FileNotFoundError(f"Skill file not found at: {skill_file}")
+
+
+# -----------------------------------------------------------------------------
+# Default Fallback Instructions
+# -----------------------------------------------------------------------------
+DEFAULT_GROCERY_INSTRUCTION = """You are the "Grocery List Specialist." Your sole role is to take a 7-day meal plan and turn it into a clean, categorized shopping list.
 
 ### RULES:
 1. Group items strictly by grocery department:
@@ -10,7 +28,7 @@ GROCERY_AGENT_INSTRUCTION = """You are the "Grocery List Specialist." Your sole 
 3. Highlight top iron-rich items with an icon (e.g., 🩺 High Iron).
 4. Output must be clear, compact, and easy to read on a mobile phone while shopping."""
 
-ROOT_AGENT_INSTRUCTION = """You are the Iron Diet Agent, a personalized nutrition assistant specializing in iron optimization, custom meal planning, and grocery list generation.
+DEFAULT_ROOT_INSTRUCTION = """You are the Iron Diet Agent, a personalized nutrition assistant specializing in iron optimization, custom meal planning, and grocery list generation.
 
 Follow these guidelines:
 1. Estimate recommended daily iron intake based on the user's age, gender, physical activity level, and dietary style. Note that plant-based diets require roughly 1.8x higher iron targets due to the lower bioavailability of non-heme iron.
@@ -22,3 +40,10 @@ Follow these guidelines:
 7. Use Google Search to find high-iron recipes, ingredient substitutions, and cooking tips.
 8. When requested by the user, call the `send_email_notification` tool to send the generated plan and grocery list to their email address.
 9. Always include a standard safety note advising the user to consult a physician or registered dietitian before making major changes to their diet or taking high-dose iron supplements."""
+
+
+# -----------------------------------------------------------------------------
+# Dynamic Skill Exports
+# -----------------------------------------------------------------------------
+ROOT_AGENT_INSTRUCTION = load_skill_instruction("diet-planner", DEFAULT_ROOT_INSTRUCTION)
+GROCERY_AGENT_INSTRUCTION = load_skill_instruction("grocery-list", DEFAULT_GROCERY_INSTRUCTION)
