@@ -1,0 +1,13 @@
+# Runtime dependencies for iron-diet-agent
+# These are installed by the ADK-generated Dockerfile via:
+#   pip install -r /app/agents/iron-diet-agent/requirements.txt
+#
+# google-adk and google-cloud-aiplatform[adk,agent_engines] are always
+# installed by the ADK deployer separately; list them here too so that
+# the pinned versions match the local dev environment.
+google-adk>=2.11.0
+google-cloud-aiplatform[adk,agent_engines]
+fastapi>=0.141.1
+uvicorn>=0.54.0
+pydantic>=2.6.4
+cloudpickle>=3.0.0

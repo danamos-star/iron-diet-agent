@@ -2,6 +2,6 @@ name: 'iron-diet-agent'
 agent_directory: '.'
 region: 'us-central1'
 create_params:
-  root_agent_name: 'backend.agent.root_agent'
+  root_agent_name: 'agent.root_agent'
   deployment_target: 'agent_runtime'
   is_a2a: false
