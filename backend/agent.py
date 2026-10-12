@@ -5,7 +5,7 @@ from typing import Any, Optional
 from google.adk.agents import LlmAgent
 from google.adk.models import Gemini
 from google.genai import Client
-from google.adk.tools import agent_tool, url_context
+from google.adk.tools import FunctionTool, agent_tool, url_context
 from google.adk.tools.google_search_tool import GoogleSearchTool
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset
@@ -129,12 +129,9 @@ Strict Approval Workflow:
    - `body`: The full plan and grocery list text
 """,
     tools=[
-        skill_toolset,
-        agent_tool.AgentTool(agent=iron_diet_agent_google_search_agent),
-        agent_tool.AgentTool(agent=iron_diet_agent_url_context_agent),
-        send_email_notification,
-    ],
-    before_agent_callback=_init_stage,
-    after_tool_callback=_track_stage,
-    after_agent_callback=_stage_after_agent,
+            skill_toolset,
+            agent_tool.AgentTool(agent=iron_diet_agent_google_search_agent),
+            agent_tool.AgentTool(agent=iron_diet_agent_url_context_agent),
+            FunctionTool(send_email_notification),
+        ],
 )
