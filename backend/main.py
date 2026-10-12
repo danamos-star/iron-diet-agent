@@ -63,4 +63,4 @@ async def chat(message: str, session_id: str = "default-session"):
     return {"response": response_text or "No text response generated."}
 
 if __name__ == "__main__":
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=False)

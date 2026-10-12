@@ -67,12 +67,15 @@ def _stage_after_agent(callback_context: CallbackContext) -> None:
         callback_context.state["pipeline_stage"] = "awaiting_approval"
 
 
-class GlobalGemini(Gemini):
-    """Pins the Vertex AI client to the `global` location."""
+import os
 
+class GlobalGemini(Gemini):
+    """Pins the Vertex AI client with explicit project and location fallbacks."""
     @cached_property
     def api_client(self) -> Client:
-        return Client(vertexai=True, location="global")
+        project_id = os.getenv("PROJECT_ID", "iron-diet-agent")
+        location = os.getenv("LOCATION", "us-central1")
+        return Client(vertexai=True, project=project_id, location=location)
 
 
 # Sub-agents
