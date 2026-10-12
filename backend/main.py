@@ -1,3 +1,4 @@
+import os
 import uuid
 import uvicorn
 from fastapi import FastAPI
@@ -24,6 +25,12 @@ def read_root():
         "agent": root_agent.name,
         "sub_agents": [sa.name for sa in root_agent.sub_agents]
     }
+
+@app.get("/health")
+@app.get("/healthz")
+@app.get("/ping")
+def health_check():
+    return {"status": "healthy"}
 
 @app.post("/chat")
 async def chat(message: str, session_id: str = "default-session"):
@@ -63,4 +70,5 @@ async def chat(message: str, session_id: str = "default-session"):
     return {"response": response_text or "No text response generated."}
 
 if __name__ == "__main__":
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=False)
+    port = int(os.environ.get("PORT", os.environ.get("AIP_HTTP_PORT", 8080)))
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=False)
