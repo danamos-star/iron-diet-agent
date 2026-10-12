@@ -1,5 +1,5 @@
+import os
 from pathlib import Path
-from functools import cached_property
 from typing import Any, Optional
 
 from google.adk.agents import LlmAgent
@@ -15,17 +15,26 @@ from google.adk.tools.tool_context import ToolContext
 
 from backend.tools import send_email_notification
 
-# Base directory pointing to skills/ at project root
+# Base directory pointing to skills/ at project root.
+# Path(__file__) = /app/backend/agent.py inside the container → parents[1] = /app
 SKILLS_DIR = Path(__file__).resolve().parents[1] / "skills"
 
-# Load ADK Skill Toolset
-skill_toolset = SkillToolset(
-    skills=[
-        load_skill_from_dir(SKILLS_DIR / "diet-planner"),
-        load_skill_from_dir(SKILLS_DIR / "grocery-list"),
-        load_skill_from_dir(SKILLS_DIR / "brand-voice"),
-    ],
-)
+# Load ADK Skill Toolset — guard with try/except so skill-path errors surface
+# clearly in container logs rather than as an opaque import failure.
+try:
+    skill_toolset = SkillToolset(
+        skills=[
+            load_skill_from_dir(SKILLS_DIR / "diet-planner"),
+            load_skill_from_dir(SKILLS_DIR / "grocery-list"),
+            load_skill_from_dir(SKILLS_DIR / "brand-voice"),
+        ],
+    )
+except Exception as _skill_err:
+    raise RuntimeError(
+        f"Failed to load skills from {SKILLS_DIR}. "
+        f"Ensure the 'skills/' directory was copied into the container image. "
+        f"Original error: {_skill_err}"
+    ) from _skill_err
 
 # Pipeline Stage Mapping
 _TOOL_STAGES = {
@@ -67,11 +76,17 @@ def _stage_after_agent(callback_context: CallbackContext) -> None:
         callback_context.state["pipeline_stage"] = "awaiting_approval"
 
 
-import os
-
 class GlobalGemini(Gemini):
-    """Pins the Vertex AI client with explicit project and location fallbacks."""
-    @cached_property
+    """Pins the Vertex AI client with explicit project and location fallbacks.
+
+    NOTE: @property (not @cached_property) is intentional. cached_property stores
+    the live Client object in instance.__dict__, which makes the agent graph
+    unpicklable by cloudpickle (Client holds thread locks). Using @property ensures
+    the client is constructed fresh on each access and is never embedded in the
+    pickle payload sent to the Reasoning Engine.
+    """
+
+    @property
     def api_client(self) -> Client:
         project_id = os.getenv("PROJECT_ID", "iron-diet-agent")
         location = os.getenv("LOCATION", "us-central1")
@@ -112,6 +127,9 @@ root_agent = LlmAgent(
     model=GlobalGemini(model="gemini-2.5-flash"),
     description="A personalized nutrition assistant specializing in iron optimization, custom meal planning, and grocery list generation.",
     sub_agents=[grocerylistagent],
+    before_agent_callback=_init_stage,
+    after_tool_callback=_track_stage,
+    after_agent_callback=_stage_after_agent,
     instruction="""You are the Iron Diet Agent.
 
 Capabilities & Capabilities Mapping:
@@ -129,9 +147,9 @@ Strict Approval Workflow:
    - `body`: The full plan and grocery list text
 """,
     tools=[
-            skill_toolset,
-            agent_tool.AgentTool(agent=iron_diet_agent_google_search_agent),
-            agent_tool.AgentTool(agent=iron_diet_agent_url_context_agent),
-            FunctionTool(send_email_notification),
-        ],
+        skill_toolset,
+        agent_tool.AgentTool(agent=iron_diet_agent_google_search_agent),
+        agent_tool.AgentTool(agent=iron_diet_agent_url_context_agent),
+        FunctionTool(send_email_notification),
+    ],
 )
