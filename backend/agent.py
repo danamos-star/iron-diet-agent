@@ -3,11 +3,23 @@ from pathlib import Path
 from typing import Any, Optional
 
 # Ensure the Google GenAI SDK targets Vertex AI with Application Default Credentials (ADC)
-os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "1")
-if "PROJECT_ID" in os.environ and "GOOGLE_CLOUD_PROJECT" not in os.environ:
-    os.environ["GOOGLE_CLOUD_PROJECT"] = os.environ["PROJECT_ID"]
-if "LOCATION" in os.environ and "GOOGLE_CLOUD_LOCATION" not in os.environ:
-    os.environ["GOOGLE_CLOUD_LOCATION"] = os.environ["LOCATION"]
+import google.auth
+
+os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "1"
+
+# Discover project ID dynamically from ambient Google Application Default Credentials
+try:
+    _, default_proj = google.auth.default()
+except Exception:
+    default_proj = None
+
+proj_id = os.getenv("PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT") or default_proj or "iron-diet-agent"
+loc_id = os.getenv("LOCATION") or os.getenv("GOOGLE_CLOUD_LOCATION") or "us-central1"
+
+os.environ["GOOGLE_CLOUD_PROJECT"] = proj_id
+os.environ["GOOGLE_CLOUD_LOCATION"] = loc_id
+os.environ["PROJECT_ID"] = proj_id
+os.environ["LOCATION"] = loc_id
 
 from google.adk.agents import LlmAgent
 from google.adk.models import Gemini
@@ -84,14 +96,24 @@ def _stage_after_agent(callback_context: CallbackContext) -> None:
 
 
 class GlobalGemini(Gemini):
-    """Clean Gemini model wrapper inheriting cleanly from Gemini without custom
-    credential injection, using standard Application Default Credentials (ADC)
-    provided automatically by the Vertex AI container runtime.
+    """Gemini model wrapper ensuring Vertex AI client parameters are explicitly
+    passed so the container uses Application Default Credentials (ADC).
     """
 
     def __init__(self, **data: Any):
         if "model" not in data or not data["model"]:
             data["model"] = os.getenv("ORCHESTRATOR_MODEL", "gemini-2.5-flash")
+
+        # Populate client_kwargs so google-genai initializes using Vertex AI mode
+        if "client_kwargs" not in data or not data["client_kwargs"]:
+            project_id = os.getenv("PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT", "iron-diet-agent")
+            location = os.getenv("LOCATION") or os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+            data["client_kwargs"] = {
+                "vertexai": True,
+                "project": project_id,
+                "location": location,
+            }
+
         super().__init__(**data)
 
     def __reduce__(self):
