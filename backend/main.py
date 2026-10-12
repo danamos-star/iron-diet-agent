@@ -1,7 +1,8 @@
 import os
 import uuid
 import uvicorn
-from fastapi import FastAPI
+from typing import Optional
+from fastapi import FastAPI, HTTPException, Request
 from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
@@ -9,6 +10,14 @@ from google.genai import types
 from backend.agent import root_agent
 
 app = FastAPI(title="iron-diet-agent Backend")
+
+# Mount AG-UI AGENT endpoint at /api/adk if available
+try:
+    from google.adk.cli.fast_api import get_fast_api_app
+    adk_app = get_fast_api_app(agents_dir=".", web=False)
+    app.mount("/api/adk", adk_app)
+except Exception:
+    pass
 
 # Initialize session service and ADK runner
 session_service = InMemorySessionService()
@@ -33,31 +42,80 @@ def health_check():
     return {"status": "healthy"}
 
 @app.post("/chat")
-async def chat(message: str, session_id: str = "default-session"):
+async def chat(
+    request: Request,
+    message: Optional[str] = None,
+    session_id: Optional[str] = None,
+):
+    actual_message = message
+    actual_session_id = session_id
+
+    # Check request body for JSON or raw text payload
+    try:
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            body = await request.json()
+            if isinstance(body, dict):
+                if not actual_message:
+                    actual_message = body.get("message")
+                if not actual_session_id:
+                    actual_session_id = body.get("session_id")
+        else:
+            raw_body = await request.body()
+            if raw_body:
+                import json
+                try:
+                    body = json.loads(raw_body)
+                    if isinstance(body, dict):
+                        if not actual_message:
+                            actual_message = body.get("message")
+                        if not actual_session_id:
+                            actual_session_id = body.get("session_id")
+                except Exception:
+                    if not actual_message:
+                        actual_message = raw_body.decode("utf-8", errors="ignore").strip()
+    except Exception:
+        pass
+
+    if not actual_session_id:
+        actual_session_id = "default-session"
+
+    if not actual_message or not actual_message.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Missing 'message' in request body (JSON: {\"message\": \"...\"}) or query parameter (?message=...)."
+        )
+
+    actual_message = actual_message.strip()
+    # Strip any enclosing quotes (e.g. from ?message='...')
+    if (actual_message.startswith("'") and actual_message.endswith("'")) or \
+       (actual_message.startswith('"') and actual_message.endswith('"')):
+        actual_message = actual_message[1:-1]
+
     # Ensure session exists
     session = await session_service.get_session(
         app_name="iron-diet-agent",
         user_id="user",
-        session_id=session_id
+        session_id=actual_session_id
     )
     if not session:
         session = await session_service.create_session(
             app_name="iron-diet-agent",
             user_id="user",
-            session_id=session_id
+            session_id=actual_session_id
         )
 
     # Wrap the string prompt into a Google GenAI Content object
     user_content = types.Content(
         role="user",
-        parts=[types.Part.from_text(text=message)]
+        parts=[types.Part.from_text(text=actual_message)]
     )
 
     response_text = ""
     # Execute the agent through the standard Runner
     async for event in runner.run_async(
         user_id="user",
-        session_id=session_id,
+        session_id=actual_session_id,
         new_message=user_content
     ):
         if hasattr(event, "content") and event.content:

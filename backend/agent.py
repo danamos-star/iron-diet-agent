@@ -77,20 +77,29 @@ def _stage_after_agent(callback_context: CallbackContext) -> None:
 
 
 class GlobalGemini(Gemini):
-    """Pins the Vertex AI client with explicit project and location fallbacks.
-
-    NOTE: @property (not @cached_property) is intentional. cached_property stores
-    the live Client object in instance.__dict__, which makes the agent graph
-    unpicklable by cloudpickle (Client holds thread locks). Using @property ensures
-    the client is constructed fresh on each access and is never embedded in the
-    pickle payload sent to the Reasoning Engine.
+    """Pins Vertex AI client configuration with project/location fallbacks while
+    preserving ADK's native per-loop client caching so the underlying httpx client
+    is not prematurely garbage-collected and closed during asynchronous model calls.
     """
 
-    @property
-    def api_client(self) -> Client:
-        project_id = os.getenv("PROJECT_ID", "iron-diet-agent")
-        location = os.getenv("LOCATION", "us-central1")
-        return Client(vertexai=True, project=project_id, location=location)
+    def __init__(self, **data: Any):
+        if "client_kwargs" not in data or not data["client_kwargs"]:
+            project_id = os.getenv("PROJECT_ID", "iron-diet-agent")
+            location = os.getenv("LOCATION", "us-central1")
+            data["client_kwargs"] = {
+                "vertexai": True,
+                "project": project_id,
+                "location": location,
+            }
+        super().__init__(**data)
+
+    def __reduce__(self):
+        func, args, state = super().__reduce__()
+        if isinstance(state, dict) and "__dict__" in state:
+            d = state["__dict__"].copy()
+            d.pop("_per_loop_api_client", None)
+            state = dict(state, __dict__=d)
+        return (func, args, state)
 
 
 # Sub-agents
