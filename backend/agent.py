@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Any, Optional
 
+import google.auth
 from google.adk.agents import LlmAgent
 from google.adk.models import Gemini
 from google.genai import Client
@@ -77,29 +78,46 @@ def _stage_after_agent(callback_context: CallbackContext) -> None:
 
 
 class GlobalGemini(Gemini):
-    """Pins Vertex AI client configuration with project/location fallbacks while
-    preserving ADK's native per-loop client caching so the underlying httpx client
-    is not prematurely garbage-collected and closed during asynchronous model calls.
+    """Pins Vertex AI client configuration with project/location fallbacks and
+    explicit Google Cloud auth credentials while preserving ADK's native per-loop
+    client caching so the underlying httpx client is not closed prematurely.
     """
 
     def __init__(self, **data: Any):
-        if "client_kwargs" not in data or not data["client_kwargs"]:
-            project_id = os.getenv("PROJECT_ID", "iron-diet-agent")
-            location = os.getenv("LOCATION", "us-central1")
-            data["client_kwargs"] = {
-                "vertexai": True,
-                "project": project_id,
-                "location": location,
-            }
         super().__init__(**data)
+        self._setup_client_kwargs()
+
+    def _setup_client_kwargs(self) -> None:
+        if not self.client_kwargs:
+            self.client_kwargs = {}
+        project_id = os.getenv("PROJECT_ID", "iron-diet-agent")
+        location = os.getenv("LOCATION", "us-central1")
+        self.client_kwargs.setdefault("vertexai", True)
+        self.client_kwargs.setdefault("project", project_id)
+        self.client_kwargs.setdefault("location", location)
+        try:
+            creds, default_project = google.auth.default()
+            self.client_kwargs["credentials"] = creds
+            if not self.client_kwargs.get("project") and default_project:
+                self.client_kwargs["project"] = default_project
+        except Exception:
+            pass
 
     def __reduce__(self):
         func, args, state = super().__reduce__()
         if isinstance(state, dict) and "__dict__" in state:
             d = state["__dict__"].copy()
             d.pop("_per_loop_api_client", None)
+            if "client_kwargs" in d and isinstance(d["client_kwargs"], dict):
+                ck = d["client_kwargs"].copy()
+                ck.pop("credentials", None)
+                d["client_kwargs"] = ck
             state = dict(state, __dict__=d)
         return (func, args, state)
+
+    def __setstate__(self, state: Any) -> None:
+        super().__setstate__(state)
+        self._setup_client_kwargs()
 
 
 # Sub-agents
