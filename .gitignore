@@ -1,4 +1,7 @@
 .venv/
 .env
+.env.*
+*.json
 __pycache__/
 *.pyc
+uv.lock
