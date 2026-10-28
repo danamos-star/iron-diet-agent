@@ -93,6 +93,30 @@ Access the interactive API documentation at:
 
    <img width="1163" height="442" alt="image" src="https://github.com/user-attachments/assets/6b5de5ba-fc52-4c67-9020-3add68bd40b7" />
 
+## Agent Governance 
+
+1. Model Armor gataway screening
+   <img width="1082" height="191" alt="image" src="https://github.com/user-attachments/assets/87996c18-89cb-4112-99eb-9d9ccbe0b9a5" />
+
+2. Agent Gateway ingress attachment
+   <img width="986" height="98" alt="image" src="https://github.com/user-attachments/assets/3e024022-78d9-4002-8d17-4d284ab5dada" />
+
+3. Registered Governance policy
+   <img width="988" height="167" alt="image" src="https://github.com/user-attachments/assets/e536f404-ff0f-491f-a4d3-d2e5481aad55" />
+
+4. PII reduction in action
+   <img width="987" height="279" alt="image" src="https://github.com/user-attachments/assets/43b26228-3395-4dac-950b-f2a816b68b62" />
+
+5. Application layer guardrail
+   <img width="902" height="406" alt="image" src="https://github.com/user-attachments/assets/3d65b90b-a2f7-40ea-bf07-cfac90aa6c0f" />
+
+
+
+
+
+
+
+
    
 
 
