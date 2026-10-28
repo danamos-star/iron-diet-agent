@@ -70,7 +70,7 @@ Access the interactive API documentation at:
 
 ---
 
-## 🛠️ Testing the Approval Flow (Golden Path)
+## 🛠️ Testing the approval flow (Golden Path)
 
 1. **Turn 1 (Draft Phase)**: Send a `POST /chat` request:
    > *"Generate a 3-day high-iron meal plan with a grocery list and email it to user@example.com."*
@@ -79,3 +79,21 @@ Access the interactive API documentation at:
 2. **Turn 2 (Approval Phase)**: Send a follow-up request in the same session:
    > *"Looks great, I approve! Please send the email."*
    - **Result**: The agent receives confirmation, triggers `send_email_notification`, and completes the pipeline.
+
+## Verification screenshots
+
+1. Deployment verification
+   <img width="1872" height="729" alt="image" src="https://github.com/user-attachments/assets/5a05f87d-d555-44f5-a27d-6ed976855c05" />
+
+2. Memory Bank configuration
+   <img width="1855" height="609" alt="image" src="https://github.com/user-attachments/assets/9d17cf30-5fa2-4104-85a5-b5377b730fbb" />
+
+3. Streamed Response verification
+   <img width="1154" height="396" alt="image" src="https://github.com/user-attachments/assets/ba63c3a7-d1b2-4a38-9063-e482091765c0" />
+
+   <img width="1163" height="442" alt="image" src="https://github.com/user-attachments/assets/6b5de5ba-fc52-4c67-9020-3add68bd40b7" />
+
+   
+
+
+
