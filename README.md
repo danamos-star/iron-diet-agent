@@ -110,6 +110,27 @@ Access the interactive API documentation at:
 5. Application layer guardrail
    <img width="902" height="406" alt="image" src="https://github.com/user-attachments/assets/3d65b90b-a2f7-40ea-bf07-cfac90aa6c0f" />
 
+## Agent Optimisation
+
+1. The Evaluation Suite passing output
+   <img width="733" height="221" alt="image" src="https://github.com/user-attachments/assets/177c54da-1ee5-457a-b242-5e93e777aabd" />
+
+2. The CI/CD Evaluation gate
+   <img width="697" height="144" alt="image" src="https://github.com/user-attachments/assets/aae3d043-07f8-4528-8783-1449b6fc6040" />
+
+3. Simulated scenario evaluation suite
+   <img width="887" height="297" alt="image" src="https://github.com/user-attachments/assets/4e817d09-9b09-4ca6-95b8-46d1ed3a204f" />
+
+4. Analytics and Observability
+   <img width="790" height="536" alt="image" src="https://github.com/user-attachments/assets/9ebe554d-fc17-4db8-8cb3-0183aff43431" />
+
+   <img width="808" height="502" alt="image" src="https://github.com/user-attachments/assets/adc3055e-3e4c-4c33-9bb7-2efabd39cb23" />
+
+   
+
+
+
+
 
 
 
